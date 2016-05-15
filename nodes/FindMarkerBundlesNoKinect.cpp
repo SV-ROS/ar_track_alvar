@@ -57,6 +57,9 @@ using namespace std;
 Camera *cam;
 cv_bridge::CvImagePtr cv_ptr_;
 image_transport::Subscriber cam_sub_;
+
+image_transport::Publisher debug_pub_;
+
 ros::Publisher arMarkerPub_;
 ros::Publisher rvizMarkerPub_;
 ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
@@ -78,19 +81,19 @@ std::string cam_info_topic;
 std::string output_frame;
 int n_bundles = 0;   
 
-void GetMultiMarkerPoses(IplImage *image);
+void GetMultiMarkerPoses(IplImage *image, bool visualize);
 void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg);
 void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_msg, tf::StampedTransform &CamToOutput, visualization_msgs::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker);
 
 
 // Updates the bundlePoses of the multi_marker_bundles by detecting markers and using all markers in a bundle to infer the master tag's position
-void GetMultiMarkerPoses(IplImage *image) {
+void GetMultiMarkerPoses(IplImage *image, bool visualize) {
 
-  if (marker_detector.Detect(image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)){
+  if (marker_detector.Detect(image, cam, true, visualize, max_new_marker_error, max_track_error, CVSEQ, true)){
     for(int i=0; i<n_bundles; i++)
       multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
     
-    if(marker_detector.DetectAdditional(image, cam, false) > 0){
+    if(marker_detector.DetectAdditional(image, cam, visualize) > 0){
       for(int i=0; i<n_bundles; i++){
 	if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], image) > 0))
 	  multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
@@ -219,7 +222,12 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
       // us a cv::Mat. I'm too lazy to change to cv::Mat throughout right now, so I
       // do this conversion here -jbinney
       IplImage ipl_image = cv_ptr_->image;
-      GetMultiMarkerPoses(&ipl_image);
+
+      bool visualize = (debug_pub_.getNumSubscribers() > 0);
+
+      GetMultiMarkerPoses(&ipl_image, visualize);
+
+      debug_pub_.publish(cv_ptr_->toImageMsg());
 		
       //Draw the observed markers that are visible and note which bundles have at least 1 marker seen
       for(int i=0; i<n_bundles; i++)
@@ -338,6 +346,8 @@ int main(int argc, char *argv[])
   ROS_INFO ("Subscribing to image topic");
   image_transport::ImageTransport it_(n);
   cam_sub_ = it_.subscribe (cam_image_topic, 1, &getCapCallback);
+
+  debug_pub_ = it_.advertise("ar_debug_img", 1);
 
   ros::spin();
 
