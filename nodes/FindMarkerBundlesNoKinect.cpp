@@ -93,12 +93,12 @@ void GetMultiMarkerPoses(IplImage *image, bool visualize) {
     for(int i=0; i<n_bundles; i++)
       multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
     
-    if(marker_detector.DetectAdditional(image, cam, visualize) > 0){
-      for(int i=0; i<n_bundles; i++){
-	if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], image) > 0))
-	  multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
-      }
-    }
+//    if(marker_detector.DetectAdditional(image, cam, visualize) > 0){
+//      for(int i=0; i<n_bundles; i++){
+//	if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], image) > 0))
+//	  multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
+//      }
+//    }
   }
 }
 
