@@ -292,6 +292,24 @@ bool MultiMarker::IsValidMarker(int marker_id) {
 	return idx != -1 && marker_status[idx] != 0;
 }
 
+double crossProduct(const PointDouble &a, const PointDouble &b) {
+    return a.x * b.y - a.y * b.x;
+}
+
+/*
+ * In an upper-left origin image clockwise is positive
+ */
+double calcOrientation(const std::vector<PointDouble> &points) {
+	if (points.size() < 3)
+		return 0.0;
+
+	double sum = crossProduct(points[points.size()-1], points[0]);
+	for(size_t j = 0; j < points.size()-1; ++j) {
+		sum += crossProduct(points[j], points[j+1]);
+	}
+
+	return sum;
+}
 
 double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera* cam, Pose& pose, IplImage* image) {
 	vector<CvPoint3D64f> world_points;
@@ -312,6 +330,11 @@ double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera*
 
 		// But only if we have corresponding points in the pointcloud
 		if (marker_status[index] > 0) {
+			// Ignore markers facing away from camera - with corners in clockwise order.
+			// We cannot be seeing those.
+			if (calcOrientation(marker->marker_corners_img) > 0.0)
+				continue;
+
 			for(size_t j = 0; j < marker->marker_corners.size(); ++j)
 			{
 				CvPoint3D64f Xnew = pointcloud[pointcloud_index(id, (int)j)];
