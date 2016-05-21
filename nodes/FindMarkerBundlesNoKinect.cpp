@@ -79,6 +79,7 @@ double max_track_error;
 std::string cam_image_topic; 
 std::string cam_info_topic; 
 std::string output_frame;
+std::string tf_prefix;
 int n_bundles = 0;   
 
 void GetMultiMarkerPoses(IplImage *image, bool visualize);
@@ -126,7 +127,11 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
 
   //Publish the cam to marker transform for main marker in each bundle
   if(type==MAIN_MARKER){
-    std::string markerFrame = "ar_marker_";
+    std::string markerFrame = "/ar_marker_";
+    if (!tf_prefix.empty()) {
+        // http://wiki.ros.org/geometry/CoordinateFrameConventions
+        markerFrame = "/" + tf_prefix + markerFrame;
+    }
     std::stringstream out;
     out << id;
     std::string id_string = out.str();
@@ -288,6 +293,12 @@ int main(int argc, char *argv[])
 {
   ros::init (argc, argv, "marker_detect");
   ros::NodeHandle n;
+
+  string tf_prefix_param;
+  if (n.searchParam("tf_prefix", tf_prefix_param))
+	  n.getParam(tf_prefix_param, tf_prefix);
+  ROS_INFO("tf_prefix_param:%s", tf_prefix_param.c_str());
+  ROS_INFO("tf_prefix:%s", tf_prefix.c_str());
 
   if(argc < 8){
     std::cout << std::endl;
